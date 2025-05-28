@@ -1,5 +1,10 @@
-python-telegram-bot==20.8
-Flask==2.3.3
 pandas
+python-telegram-bot==20.3
+python-docx
+docx2pdf
+pypiwin32 ; platform_system == "Windows"
+Pillow
+pytesseract
 requests
-pytz
+fpdf
+PyPDF2
