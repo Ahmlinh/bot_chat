@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block title %}Upload Arsip - Arsip Digital{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0"><i class="fas fa-upload me-2"></i>Upload Arsip Baru</h4>
+            </div>
+            <div class="card-body">
+                {% if need_login %}
+                <div class="alert alert-warning">
+                    <h5><i class="fas fa-exclamation-triangle me-2"></i>Login Diperlukan</h5>
+                    <p class="mb-3">{{ message }}</p>
+                    <a href="{{ url_for('login') }}" class="btn btn-primary">
+                        <i class="fab fa-google me-2"></i>Login dengan Google
+                    </a>
+                </div>
+                {% else %}
+                <form id="uploadForm" enctype="multipart/form-data">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="tingkat1" class="form-label">Tingkat 1</label>
+                            <select class="form-select" id="tingkat1" name="tingkat1" required>
+                                <option value="">Pilih Tingkat 1</option>
+                                {% for kategori in kategori %}
+                                    <option value="{{ kategori }}">{{ kategori }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="tingkat2" class="form-label">Tingkat 2</label>
+                            <select class="form-select" id="tingkat2" name="tingkat2" required disabled>
+                                <option value="">Pilih Tingkat 2</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="judul" class="form-label">Judul Arsip</label>
+                        <input type="text" class="form-control" id="judul" name="judul" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="deskripsi" class="form-label">Deskripsi</label>
+                        <textarea class="form-control" id="deskripsi" name="deskripsi" rows="3" required></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="file" class="form-label">File Arsip</label>
+                        <input type="file" class="form-control" id="file" name="file" accept="*/*" required>
+                        <div class="form-text">Maksimal ukuran file: 10MB. Format file: semua format.</div>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <strong>Info:</strong> 
+                        <ul class="mb-0">
+                            <li>Nomor arsip akan digenerate otomatis</li>
+                            <li>File akan disimpan di Google Drive Anda</li>
+                            <li>Metadata akan disimpan di Google Spreadsheet</li>
+                        </ul>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100" id="submitBtn">
+                        <i class="fas fa-upload me-2"></i>Upload Arsip
+                    </button>
+                </form>
+
+                <div id="message" class="mt-3"></div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('tingkat1').addEventListener('change', function() {
+    const tingkat1 = this.value;
+    const tingkat2Select = document.getElementById('tingkat2');
+    
+    if (tingkat1) {
+        fetch(`/api/kategori/${tingkat1}`)
+            .then(response => response.json())
+            .then(data => {
+                tingkat2Select.innerHTML = '<option value="">Pilih Tingkat 2</option>';
+                data.forEach(item => {
+                    tingkat2Select.innerHTML += `<option value="${item}">${item}</option>`;
+                });
+                tingkat2Select.disabled = false;
+            });
+    } else {
+        tingkat2Select.innerHTML = '<option value="">Pilih Tingkat 2</option>';
+        tingkat2Select.disabled = true;
+    }
+});
+
+document.getElementById('uploadForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const submitBtn = document.getElementById('submitBtn');
+    const messageDiv = document.getElementById('message');
+    const originalText = submitBtn.innerHTML;
+    
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Mengupload...';
+    messageDiv.innerHTML = '';
+    
+    const formData = new FormData(this);
+    
+    fetch('/upload', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            messageDiv.innerHTML = `<div class="alert alert-success">${data.message}</div>`;
+            document.getElementById('uploadForm').reset();
+            document.getElementById('tingkat2').disabled = true;
+        } else {
+            messageDiv.innerHTML = `<div class="alert alert-danger">${data.message}</div>`;
+        }
+    })
+    .catch(error => {
+        messageDiv.innerHTML = `<div class="alert alert-danger">Terjadi kesalahan: ${error}</div>`;
+    })
+    .finally(() => {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+    });
+});
+</script>
+{% endblock %}
